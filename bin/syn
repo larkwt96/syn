@@ -1,0 +1,72 @@
+#!/bin/bash
+
+#This file contains notes used for development.
+#
+#Usage:
+#    synctree command [arg ...]
+#
+#Commands:
+#    init path [user@domain]    : Initializes a syn directory in current
+#                                   directory pointing to the remote (or local)
+#                                   path.
+#    del                     : Deletes the current syn directory
+#    stat                    : Prints information about current syn directory
+#    push -adl               : Pushes changes
+#        -a                      : Signals to use push the entire syn directory
+#        -d                      : Signals to use the --delete option for rsync
+#        -l                      : Signals to perform a whatif on the
+#                                    synchronization
+#    pull -adl               : Pulls changes
+#        -a                      : Signals to use pull the entire syn directory
+#        -d                      : Signals to use the --delete option for rsync
+#        -l                      : Signals to perform a whatif on the
+#                                    synchronization
+#    help {cmd}              : Outputs help about a command
+
+# FUNCTION COMMAND DECLARATION
+function init {
+
+}
+
+function del {
+
+}
+
+function stat {
+
+}
+
+function push {
+
+}
+
+function pull {
+
+}
+
+function help {
+
+}
+
+# HELPER FUNCTION DECLARATION
+function err {
+
+}
+
+# Handle no args
+if [ $# -eq 0 ]; then
+    help
+    exit 0
+fi # Post: Args were passed
+
+# Forward command
+shift 
+case "$0" in
+    init) init "$@" ;;
+    del)  del  "$@" ;;
+    stat) stat "$@" ;;
+    push) push "$@" ;;
+    pull) pull "$@" ;;
+    help) help "$@" ;;
+    *)    err "Command $0 not found"
+esac
