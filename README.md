@@ -19,6 +19,47 @@ directories with each other.
   command to delete missing files on the remote server (rsync's --delete
   option)
 
+### TODO ###
+
+combine remote repo vs dir
+
+### Usage ###
+This file contains notes used for development.
+
+Usage:
+    synctree command [args...]
+
+Commands:
+    init [[server:]path]
+        Initializes a syn directory in current directory pointing to the remote
+        (or local) path. If it is the server directory, don't specify path.
+        Edit .ssh/config so rsync can correctly connect to the remote repo.
+
+    uninit
+        Unconfigures current syn repo by removing .syn config file.
+
+    set [server:]path
+        Sets the remote directory.
+
+    push -adl
+        Pushes files in current directory to remote directory.
+
+        Options
+        -a, Push entire syn directory
+        -d, Delete remote files not in local directory
+        -w, Perform a whatif on the synchronization
+
+    pull -adl [path]
+        Pulls files from remote directory into current directory.
+
+        Options
+        -a, Pull entire syn directory
+        -d, Delete remote files not in local directory
+        -w, Perform a whatif on the synchronization
+
+    help
+        Displays help information.
+
 ### Who do I talk to? ###
 
 * Author: Lucas Wilson
