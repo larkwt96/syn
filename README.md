@@ -1,7 +1,15 @@
 # syn #
 
-This package is a wrapper for rsync used to easily synchronize remote
-directories with each other.
+This package is a wrapper for rsync used to easily synchronize directories with
+each other.
+
+Example:
+```
+syn init svr:/syn/path      # Mark working dir as syn dir
+syn pull                    # Pull files from remote dir
+<edit files>
+syn push                    # Push changed and new files
+```
 
 ### What is this repository for? ###
 
@@ -16,33 +24,28 @@ directories with each other.
 * It will save bandwidth and time by only pushing files with changes, this
   allows for frequent syn calls (rsync's --update option).
 * If the current state of the directory is desired, you can push with the -d
-  command to delete missing files on the remote server (rsync's --delete
-  option)
-
-### TODO ###
-
-combine remote repo vs dir
+  option to delete missing files on the remote server (rsync's --delete option)
 
 ### Usage ###
-This file contains notes used for development.
-
 Usage:
-    synctree command [args...]
+    syn command [args...]
 
 Commands:
-    init [[server:]path]
-        Initializes a syn directory in current directory pointing to the remote
-        (or local) path. If it is the server directory, don't specify path.
-        Edit .ssh/config so rsync can correctly connect to the remote repo.
+    init [server:]path
+        Configures the current directory as a syn directory with the remote dir
+        specified. It's recommended that 'server' is defined in your
+        .ssh/config file. It adds a .syn file to the root of the syn directory.
+        This file gets sourced when the syn command is run.
 
     uninit
-        Unconfigures current syn repo by removing .syn config file.
+        Unconfigures the current syn repo (by removing the .syn config file).
 
     set [server:]path
-        Sets the remote directory.
+        Sets the remote directory of the current syn repo.
 
     push -adl
-        Pushes files in current directory to remote directory.
+        Pushes files in current directory to remote directory. Note that it
+        doesn't push the entire syn directory by default. 
 
         Options
         -a, Push entire syn directory
@@ -50,7 +53,8 @@ Commands:
         -w, Perform a whatif on the synchronization
 
     pull -adl [path]
-        Pulls files from remote directory into current directory.
+        Pulls files in current directory to remote directory. Note that it
+        doesn't pull the entire syn directory by default. 
 
         Options
         -a, Pull entire syn directory
