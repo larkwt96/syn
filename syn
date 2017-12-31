@@ -1,49 +1,52 @@
 #!/bin/bash
 
+# GLOBAL HELPER FUNCTIONS
+
+err() {
+    echo "$@" 1>&2
+}
+
 # FUNCTION COMMAND DECLARATION
-function init {
-
+init() {
+    echo init
 }
 
-function del {
-
+uninit() {
+    echo uninit
 }
 
-function stat {
-
+set() {
+    echo set
 }
 
-function push {
-
+push() {
+    echo push
 }
 
-function pull {
-
+pull() {
+    echo pull
 }
 
-function help {
-
-}
-
-# HELPER FUNCTION DECLARATION
-function err {
-
+help() {
+    echo help
 }
 
 # Handle no args
 if [ $# -eq 0 ]; then
     help
     exit 0
+else
+    cmd="$1"
 fi # Post: Args were passed
 
 # Forward command
-shift 
-case "$0" in
-    init) init "$@" ;;
-    del)  del  "$@" ;;
-    stat) stat "$@" ;;
-    push) push "$@" ;;
-    pull) pull "$@" ;;
-    help) help "$@" ;;
-    *)    err "Command $0 not found"
+shift
+case "$cmd" in
+    init)   init "$@" ;;
+    uninit) uninit "$@" ;;
+    set)    set "$@" ;;
+    push)   push "$@" ;;
+    pull)   pull "$@" ;;
+    help)   help "$@" ;;
+    *)      err "Error: Invalid command: $cmd"
 esac
