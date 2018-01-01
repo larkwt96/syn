@@ -36,7 +36,7 @@ load_syn_dir() {
     fi
     . "${syn_loc_base}/.syn" # sets syn_svr and syn_svr_base
     local wd="$(pwd)"
-    syn_path="${wd##$local_base}"
+    syn_path="${wd##$syn_loc_base}"
 }
 
 save_syn_dir() {
@@ -63,12 +63,38 @@ get_full_local_path() {
     echo -n "$syn_loc_base$syn_path"
 }
 
+parse_remote_path() {
+    # Loads syn_svr and syn_svr_base given proper argument
+    # Assumes proper usage: parse_remote_path [server:]path
+    #
+    # This parsing method may break. It's intended to split server:/syn/dir
+    # into server and /syn/dir but also supports user@server:/syn/dir. Also,
+    # the parsing rules splits a:b:c:d as a:b:c and d, splitting by the last
+    # colon.
+    local arg="$1"
+    if grep -q ':' <<< "$arg"; then
+        syn_svr="${arg%:*}"
+        syn_svr_base="${arg##*:}"
+    else
+        syn_svr=
+        syn_svr_base="$arg"
+    fi
+}
+
 # FUNCTION COMMAND DECLARATION
 init() {
     init_usage() { err 'Usage: syn init [server:]path'; }
-    if [ $# -ne 1 ]; then init_usage fi
+    if [ $# -ne 1 ]; then
+        init_usage
+    elif [ -r .syn ]; then
+        err 'Syn directory already exists: use set command'
+    fi
     syn_loc_base="$(pwd)"
-    set "$1"
+
+    parse_remote_path "$1"
+
+    # Create .syn
+    save_syn_dir
 }
 
 uninit() {
@@ -78,20 +104,21 @@ uninit() {
 
 set() {
     init_set() { err 'Usage: syn set [server:]path'; }
-    if [ $# -ne 1 ]; then init_set fi
+    if [ $# -ne 1 ]; then init_set; fi
     load_syn_dir
 
-    # Parse arg
-    local arg="$1"
-    syn_svr="${arg%:*}"
-    syn_svr_base="${arg##*:}"
-    # This parsing method may break. It's intended to split server:/syn/dir
-    # into server and /syn/dir but also supports user@server:/syn/dir. Also,
-    # the parsing rules splits a:b:c:d as a:b:c and d, splitting by the last
-    # colon.
+    parse_remote_path "$1"
 
     # Saves to .syn
     save_syn_dir
+}
+
+stat() {
+    load_syn_dir
+    echo "syn_svr=$syn_svr"
+    echo "syn_svr_base=$syn_svr_base"
+    echo "syn_loc_base=$syn_loc_base"
+    echo "syn_path=$syn_path"
 }
 
 push() {
@@ -123,12 +150,13 @@ fi # Post: Args were passed
 # Forward command
 shift
 case "$cmd" in
-    init)   init "$@" ;;
+    init)   init "$@"   ;;
     uninit) uninit "$@" ;;
-    set)    set "$@" ;;
-    push)   push "$@" ;;
-    pull)   pull "$@" ;;
-    help)   help "$@" ;;
-    test)   test "$@" ;;
+    set)    set "$@"    ;;
+    stat)   stat "$@"   ;;
+    push)   push "$@"   ;;
+    pull)   pull "$@"   ;;
+    help)   help "$@"   ;;
+    test)   test "$@"   ;;
     *)      err "Error: Invalid command: $cmd"
 esac
