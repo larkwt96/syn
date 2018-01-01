@@ -1,72 +1,254 @@
 #!/bin/bash
 
-#This file contains notes used for development.
-#
-#Usage:
-#    synctree command [arg ...]
-#
-#Commands:
-#    init path [user@domain]    : Initializes a syn directory in current
-#                                   directory pointing to the remote (or local)
-#                                   path.
-#    del                     : Deletes the current syn directory
-#    stat                    : Prints information about current syn directory
-#    push -adl               : Pushes changes
-#        -a                      : Signals to use push the entire syn directory
-#        -d                      : Signals to use the --delete option for rsync
-#        -l                      : Signals to perform a whatif on the
-#                                    synchronization
-#    pull -adl               : Pulls changes
-#        -a                      : Signals to use pull the entire syn directory
-#        -d                      : Signals to use the --delete option for rsync
-#        -l                      : Signals to perform a whatif on the
-#                                    synchronization
-#    help {cmd}              : Outputs help about a command
+# GLOBAL HELPER FUNCTIONS
+err() {
+    echo "$@" 1>&2
+    exit 1
+}
+
+usage() {
+cat <<EOF
+Usage:
+    syn command [args...]
+
+Commands:
+    init [server:]path
+        Configures the current directory as a syn directory with the remote dir
+        specified. It's recommended that 'server' is defined in your
+        .ssh/config file. It adds a .syn file to the root of the syn directory.
+        This file gets sourced when the syn command is run.
+
+    uninit
+        Unconfigures the current syn repo (by removing the .syn config file).
+
+    set [server:]path
+        Sets the remote directory of the current syn repo.
+
+    stat
+        Get details about the current syn directory.
+
+    push -adw
+        Pushes files in current directory to remote directory. Note that it
+        doesn't push the entire syn directory by default. 
+
+        Options
+        -a, Push entire syn directory
+        -d, Delete remote files not in local directory
+        -n, Perform a dry run on the synchronization
+
+    pull -adn
+        Pulls files in current directory to remote directory. Note that it
+        doesn't pull the entire syn directory by default. 
+
+        Options
+        -a, Pull entire syn directory
+        -d, Delete remote files not in local directory
+        -n, Perform a dry run on the synchronization
+
+    help
+        Displays help information.
+EOF
+}
+
+get_syn_loc_base() {(
+    # Recursive helper function to print syn_loc_base to stdout. It prints
+    # nothing if syn config file wasn't found. Used by get_syn_loc_base, which
+    # instead errors and exits if syn config file wasn't found.
+    local wd="$(pwd)"
+    if [ -r .syn ]; then
+        echo -n "$wd"
+    elif [ "$wd" != "/" ]; then
+        cd ..
+        get_syn_loc_base
+    fi
+)}
+
+load_syn_dir() {
+    # This loads variables related to the current syn directory:
+    # syn_svr           - The remote server (unset if not remote)
+    # syn_svr_base      - The path to the base of remote syn dir
+    # syn_loc_base      - The path of local syn dir (e.g., /path/to/base)
+    # syn_path          - Path from syn dir's base (e.g., /path/in/syn_dir)
+    unset syn_svr syn_svr_base syn_loc_base syn_path
+    syn_loc_base="$(get_syn_loc_base)"
+    if [ "$syn_loc_base" = "" ] || [ ! -r "$syn_loc_base" ]; then
+        err "Unable to find syn dir config file"
+    fi
+    . "${syn_loc_base}/.syn" # sets syn_svr and syn_svr_base
+    local wd="$(pwd)"
+    syn_path="${wd##$syn_loc_base}"
+}
+
+save_syn_dir() {
+    # Saves the loaded syn directory. This function assumes syn_loc_base,
+    # syn_svr, and syn_svr_base are set and valid.
+    syn_config_file="${syn_loc_base}/.syn"
+    while [ "$syn_svr_base" != "${syn_svr_base%/}" ]; do
+        syn_svr_base="${syn_svr_base%/}"
+    done
+
+    echo "syn_svr=\"${syn_svr}\"" > "$syn_config_file"
+    echo "syn_svr_base=\"${syn_svr_base}\"" >> "$syn_config_file"
+}
+
+get_full_remote_path() {
+    local svr
+    if [ "$syn_svr" = "" ]; then
+        # syn_svr unset
+        svr=
+    else
+        # syn_svr set
+        svr="${syn_svr}:"
+    fi
+    echo -n "$svr$syn_svr_base$syn_path/"
+}
+
+get_full_local_path() {
+    echo -n "$syn_loc_base$syn_path/"
+}
+
+parse_remote_path() {
+    # Loads syn_svr and syn_svr_base given proper argument
+    # Assumes proper usage: parse_remote_path [server:]path
+    #
+    # This parsing method may break. It's intended to split server:/syn/dir
+    # into server and /syn/dir but also supports user@server:/syn/dir. Also,
+    # the parsing rules splits a:b:c:d as a:b:c and d, splitting by the last
+    # colon.
+    local arg="$1"
+    if grep -q ':' <<< "$arg"; then
+        syn_svr="${arg%:*}"
+        syn_svr_base="${arg##*:}"
+    else
+        syn_svr=
+        syn_svr_base="$arg"
+    fi
+    while [ "$syn_svr_base" != "${syn_svr_base%/}" ]; do
+        syn_svr_base="${syn_svr_base%/}"
+    done
+}
 
 # FUNCTION COMMAND DECLARATION
-function init {
+init() {
+    init_usage() { err 'Usage: syn init [server:]path'; }
+    if [ $# -ne 1 ]; then
+        init_usage
+    elif [ -r .syn ]; then
+        err 'Syn directory already exists: use set command'
+    fi
+    syn_loc_base="$(pwd)"
 
+    parse_remote_path "$1"
+
+    # Create .syn
+    save_syn_dir
 }
 
-function del {
-
+uninit() {
+    load_syn_dir
+    rm -f "${syn_loc_base}/.syn"
 }
 
-function stat {
+set() {
+    init_set() { err 'Usage: syn set [server:]path'; }
+    if [ $# -ne 1 ]; then init_set; fi
+    load_syn_dir
 
+    parse_remote_path "$1"
+
+    # Saves to .syn
+    save_syn_dir
 }
 
-function push {
-
+stat() {
+    load_syn_dir
+    echo "syn_svr: $syn_svr"
+    echo "syn_svr_base: $syn_svr_base"
+    echo "syn_loc_base: $syn_loc_base"
+    echo "syn_path: $syn_path"
+    echo "Full local path: $(get_full_local_path)"
+    echo "Full remote path: $(get_full_remote_path)"
 }
 
-function pull {
+push() {
+    push_usage() { err 'Usage: syn push [-adn]'; }
 
+    load_syn_dir
+
+    # Parse args
+    local OPTIND opt args
+    while getopts ":adn" opt; do
+        case $opt in
+            a) all=yes ;;
+            d) del=yes ;;
+            n) dryrun=yes ;;
+            \?) push_usage ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # Configure rsync args
+    args="-aurzv"
+    if [ "$all" = "yes" ]; then syn_path=""; fi
+    if [ "$del" = "yes" ]; then args="$args --delete"; fi
+    if [ "$dryrun" = "yes" ]; then args="$args --dry-run"; fi
+
+    # Call rsync, transfer files
+    src="$(get_full_local_path)"
+    dst="$(get_full_remote_path)"
+    rsync $args "$src" "$dst"
 }
 
-function help {
+pull() {
+    pull_usage() { err 'Usage: syn pull [-adn]'; }
 
+    load_syn_dir
+
+    # Parse args
+    local OPTIND opt args
+    while getopts ":adn" opt; do
+        case $opt in
+            a) all=yes ;;
+            d) del=yes ;;
+            n) dryrun=yes ;;
+            \?) pull_usage ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # Configure rsync args
+    args="-aurzv"
+    if [ "$all" = "yes" ]; then syn_path=""; fi
+    if [ "$del" = "yes" ]; then args="$args --delete"; fi
+    if [ "$dryrun" = "yes" ]; then args="$args --dry-run"; fi
+
+    # Call rsync, transfer files
+    src="$(get_full_remote_path)"
+    dst="$(get_full_local_path)"
+    rsync $args "$src" "$dst"
 }
 
-# HELPER FUNCTION DECLARATION
-function err {
-
+help() {
+    usage
 }
 
 # Handle no args
 if [ $# -eq 0 ]; then
-    help
-    exit 0
+    cmd='help'
+else
+    cmd="$1"
 fi # Post: Args were passed
 
 # Forward command
-shift 
-case "$0" in
-    init) init "$@" ;;
-    del)  del  "$@" ;;
-    stat) stat "$@" ;;
-    push) push "$@" ;;
-    pull) pull "$@" ;;
-    help) help "$@" ;;
-    *)    err "Command $0 not found"
+shift
+case "$cmd" in
+    init)   init "$@"   ;;
+    uninit) uninit "$@" ;;
+    set)    set "$@"    ;;
+    stat)   stat "$@"   ;;
+    push)   push "$@"   ;;
+    pull)   pull "$@"   ;;
+    help)   help "$@"   ;;
+    test)   test "$@"   ;;
+    *)      err "Error: Invalid command: $cmd"
 esac
