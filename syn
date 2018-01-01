@@ -7,7 +7,8 @@ err() {
 }
 
 usage() {
-    : # TODO
+    echo "Usage: TODO"
+    # TODO
 }
 
 get_syn_loc_base() {(
@@ -56,7 +57,7 @@ get_full_remote_path() {
         # syn_svr set
         svr="${syn_svr}:"
     fi
-    echo -n "$svr$syn_path"
+    echo -n "$svr$syn_svr_base$syn_path"
 }
 
 get_full_local_path() {
@@ -99,7 +100,7 @@ init() {
 
 uninit() {
     load_syn_dir
-    echo rm -f "${syn_loc_base}/.syn"
+    rm -f "${syn_loc_base}/.syn"
 }
 
 set() {
@@ -115,15 +116,30 @@ set() {
 
 stat() {
     load_syn_dir
-    echo "syn_svr=$syn_svr"
-    echo "syn_svr_base=$syn_svr_base"
-    echo "syn_loc_base=$syn_loc_base"
-    echo "syn_path=$syn_path"
+    echo "syn_svr: $syn_svr"
+    echo "syn_svr_base: $syn_svr_base"
+    echo "syn_loc_base: $syn_loc_base"
+    echo "syn_path: $syn_path"
+    echo "Full local path: $(get_full_local_path)"
+    echo "Full remote path: $(get_full_remote_path)"
 }
 
 push() {
-    local OPTIND opt
-    # TODO
+    push_usage() {
+        # TODO
+    }
+    local OPTIND opt args
+    args="-aurzv"
+    while getopts ":adw" opt; do
+        case $opt in
+            a) all=yes ;;
+            d) del=yes ;;
+            w) whatif=yes ;;
+            \?) push_usage ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
 }
 
 pull() {
@@ -132,12 +148,7 @@ pull() {
 }
 
 help() {
-    : # TODO
-}
-
-test() {
-    load_syn_dir
-    save_syn_dir
+    usage
 }
 
 # Handle no args
