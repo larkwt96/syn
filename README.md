@@ -16,7 +16,7 @@ syn push                    # Push changed and new files
 * Mark a directory to point to a remote directory, and you can push and pull
   changes.
 * You can even push/pull sub directories within the local directory tree.
-* To avoid pushing unwanted changes, there is a whatif mode (rsync's TODO
+* To avoid pushing unwanted changes, there is a dry run mode (rsync's --dry-run
   option).
 * If synchronizing between similar filesystems (ext4 to hfs, but not ext4 to
   fat32), you can configure the archiving option to preserve attributes, such
@@ -43,23 +43,26 @@ Commands:
     set [server:]path
         Sets the remote directory of the current syn repo.
 
-    push -adl
+    stat
+        Get details about the current syn directory.
+
+    push -adw
         Pushes files in current directory to remote directory. Note that it
         doesn't push the entire syn directory by default. 
 
         Options
         -a, Push entire syn directory
         -d, Delete remote files not in local directory
-        -w, Perform a whatif on the synchronization
+        -n, Perform a dry run on the synchronization
 
-    pull -adl [path]
+    pull -adn
         Pulls files in current directory to remote directory. Note that it
         doesn't pull the entire syn directory by default. 
 
         Options
         -a, Pull entire syn directory
         -d, Delete remote files not in local directory
-        -w, Perform a whatif on the synchronization
+        -n, Perform a dry run on the synchronization
 
     help
         Displays help information.

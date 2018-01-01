@@ -7,8 +7,47 @@ err() {
 }
 
 usage() {
-    echo "Usage: TODO"
-    # TODO
+cat <<EOF
+Usage:
+    syn command [args...]
+
+Commands:
+    init [server:]path
+        Configures the current directory as a syn directory with the remote dir
+        specified. It's recommended that 'server' is defined in your
+        .ssh/config file. It adds a .syn file to the root of the syn directory.
+        This file gets sourced when the syn command is run.
+
+    uninit
+        Unconfigures the current syn repo (by removing the .syn config file).
+
+    set [server:]path
+        Sets the remote directory of the current syn repo.
+
+    stat
+        Get details about the current syn directory.
+
+    push -adw
+        Pushes files in current directory to remote directory. Note that it
+        doesn't push the entire syn directory by default. 
+
+        Options
+        -a, Push entire syn directory
+        -d, Delete remote files not in local directory
+        -n, Perform a dry run on the synchronization
+
+    pull -adn
+        Pulls files in current directory to remote directory. Note that it
+        doesn't pull the entire syn directory by default. 
+
+        Options
+        -a, Pull entire syn directory
+        -d, Delete remote files not in local directory
+        -n, Perform a dry run on the synchronization
+
+    help
+        Displays help information.
+EOF
 }
 
 get_syn_loc_base() {(
@@ -125,26 +164,57 @@ stat() {
 }
 
 push() {
-    push_usage() {
-        # TODO
-    }
+    push_usage() { err 'Usage: syn push [-adn]'; }
+
+    # Parse args
     local OPTIND opt args
-    args="-aurzv"
-    while getopts ":adw" opt; do
+    while getopts ":adn" opt; do
         case $opt in
             a) all=yes ;;
             d) del=yes ;;
-            w) whatif=yes ;;
+            n) dryrun=yes ;;
             \?) push_usage ;;
         esac
     done
     shift $((OPTIND-1))
 
+    # Configure rsync args
+    args="-aurzv"
+    if [ "$all" = "yes" ]; then syn_path=""; fi
+    if [ "$del" = "yes" ]; then args="$args --delete"; fi
+    if [ "$dryrun" = "yes" ]; then args="$args --dry-run"; fi
+
+    # Call rsync, transfer files
+    src="$(get_full_local_path)"
+    dst="$(get_full_remote_path)"
+    rsync $args "$src/" "$dst/"
 }
 
 pull() {
-    local OPTIND opt
-    # TODO
+    pull_usage() { err 'Usage: syn pull [-adn]'; }
+
+    # Parse args
+    local OPTIND opt args
+    while getopts ":adn" opt; do
+        case $opt in
+            a) all=yes ;;
+            d) del=yes ;;
+            n) dryrun=yes ;;
+            \?) pull_usage ;;
+        esac
+    done
+    shift $((OPTIND-1))
+
+    # Configure rsync args
+    args="-aurzv"
+    if [ "$all" = "yes" ]; then syn_path=""; fi
+    if [ "$del" = "yes" ]; then args="$args --delete"; fi
+    if [ "$dryrun" = "yes" ]; then args="$args --dry-run"; fi
+
+    # Call rsync, transfer files
+    src="$(get_full_remote_path)"
+    dst="$(get_full_local_path)"
+    rsync $args "$src/" "$dst/"
 }
 
 help() {
