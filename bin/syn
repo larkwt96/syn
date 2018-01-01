@@ -83,24 +83,28 @@ save_syn_dir() {
     # Saves the loaded syn directory. This function assumes syn_loc_base,
     # syn_svr, and syn_svr_base are set and valid.
     syn_config_file="${syn_loc_base}/.syn"
+    while [ "$syn_svr_base" != "${syn_svr_base%/}" ]; do
+        syn_svr_base="${syn_svr_base%/}"
+    done
+
     echo "syn_svr=\"${syn_svr}\"" > "$syn_config_file"
     echo "syn_svr_base=\"${syn_svr_base}\"" >> "$syn_config_file"
 }
 
 get_full_remote_path() {
     local svr
-    if [ -z ${syn_svr+x} ]; then
+    if [ "$syn_svr" = "" ]; then
         # syn_svr unset
         svr=
     else
         # syn_svr set
         svr="${syn_svr}:"
     fi
-    echo -n "$svr$syn_svr_base$syn_path"
+    echo -n "$svr$syn_svr_base$syn_path/"
 }
 
 get_full_local_path() {
-    echo -n "$syn_loc_base$syn_path"
+    echo -n "$syn_loc_base$syn_path/"
 }
 
 parse_remote_path() {
@@ -119,6 +123,9 @@ parse_remote_path() {
         syn_svr=
         syn_svr_base="$arg"
     fi
+    while [ "$syn_svr_base" != "${syn_svr_base%/}" ]; do
+        syn_svr_base="${syn_svr_base%/}"
+    done
 }
 
 # FUNCTION COMMAND DECLARATION
@@ -166,6 +173,8 @@ stat() {
 push() {
     push_usage() { err 'Usage: syn push [-adn]'; }
 
+    load_syn_dir
+
     # Parse args
     local OPTIND opt args
     while getopts ":adn" opt; do
@@ -187,11 +196,13 @@ push() {
     # Call rsync, transfer files
     src="$(get_full_local_path)"
     dst="$(get_full_remote_path)"
-    rsync $args "$src/" "$dst/"
+    rsync $args "$src" "$dst"
 }
 
 pull() {
     pull_usage() { err 'Usage: syn pull [-adn]'; }
+
+    load_syn_dir
 
     # Parse args
     local OPTIND opt args
@@ -214,7 +225,7 @@ pull() {
     # Call rsync, transfer files
     src="$(get_full_remote_path)"
     dst="$(get_full_local_path)"
-    rsync $args "$src/" "$dst/"
+    rsync $args "$src" "$dst"
 }
 
 help() {
