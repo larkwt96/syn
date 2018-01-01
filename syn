@@ -1,40 +1,110 @@
 #!/bin/bash
 
 # GLOBAL HELPER FUNCTIONS
-
 err() {
     echo "$@" 1>&2
+    exit 1
+}
+
+usage() {
+    : # TODO
+}
+
+get_syn_loc_base_rec() {(
+    # Recursive helper function to print syn_loc_base to stdout. It prints
+    # nothing if syn config file wasn't found. Used by get_syn_loc_base, which
+    # instead errors and exits if syn config file wasn't found.
+    local wd="$(pwd)"
+    if [ -r .syn ]; then
+        echo -n "$wd"
+    elif [ "$wd" != "/" ]; then
+        cd ..
+        get_syn_loc_base_rec
+    fi
+)}
+
+get_syn_loc_base() {
+    local dir="$(get_syn_loc_base_rec)"
+    if [ "$dir" = "" ]; then
+        err "Unable to find syn dir config file"
+    else
+        echo -n "$dir"
+    fi
+}
+
+load_syn_dir() {
+    # This loads variables related to the current syn directory:
+    # syn_svr           - The remote server (unset if not remote)
+    # syn_svr_base      - The path to the base of remote syn dir
+    # syn_loc_base      - The path of local syn dir (e.g., /path/to/base)
+    # syn_path          - Path from syn dir's base (e.g., /path/in/syn_dir)
+    unset syn_svr syn_svr_base syn_loc_base syn_path
+    syn_loc_base="$(get_syn_loc_base)"
+    . "${syn_loc_base}/.syn" # sets syn_svr and syn_svr_base
+    local wd="$(pwd)" # working directory
+    syn_path="${wd##$local_base}"
+}
+
+save_syn_dir() {
+    # Saves the loaded syn directory. This function assumes related variables
+    # are set and valid.
+    syn_config_file="${syn_loc_base}/.syn"
+    echo "syn_svr=\"${syn_svr}\""
+    echo "syn_svr_base=\"${syn_svr_base}\""
+}
+
+get_full_remote_path() {
+    local svr
+    if [ -z ${syn_svr+x} ]; then
+        # syn_svr unset
+        svr=
+    else
+        # syn_svr set
+        svr="${syn_svr}:"
+    fi
+    echo -n "$svr$syn_path"
+}
+
+get_full_local_path() {
+    echo -n "$syn_loc_base$syn_path"
 }
 
 # FUNCTION COMMAND DECLARATION
 init() {
-    echo init
+    init_usage() { err 'Usage: syn init [server:]path'; }
+    # TODO
 }
 
 uninit() {
-    echo uninit
+    : # TODO
 }
 
 set() {
-    echo set
+    : # TODO
 }
 
 push() {
-    echo push
+    local OPTIND opt
+    # TODO
 }
 
 pull() {
-    echo pull
+    local OPTIND opt
+    # TODO
 }
 
 help() {
-    echo help
+    : # TODO
+}
+
+test() {
+    load_syn_dir
+    save_syn_dir
 }
 
 # Handle no args
 if [ $# -eq 0 ]; then
-    help
-    exit 0
+    cmd='help'
 else
     cmd="$1"
 fi # Post: Args were passed
@@ -48,5 +118,6 @@ case "$cmd" in
     push)   push "$@" ;;
     pull)   pull "$@" ;;
     help)   help "$@" ;;
+    test)   test "$@" ;;
     *)      err "Error: Invalid command: $cmd"
 esac
