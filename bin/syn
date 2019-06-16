@@ -188,7 +188,7 @@ push() {
     shift $((OPTIND-1))
 
     # Configure rsync args
-    args="-aurzv"
+    args="-aurv"
     if [ "$all" = "yes" ]; then syn_path=""; fi
     if [ "$del" = "yes" ]; then args="$args --delete"; fi
     if [ "$dryrun" = "yes" ]; then args="$args --dry-run"; fi
@@ -217,7 +217,7 @@ pull() {
     shift $((OPTIND-1))
 
     # Configure rsync args
-    args="-aurzv"
+    args="-aurv"
     if [ "$all" = "yes" ]; then syn_path=""; fi
     if [ "$del" = "yes" ]; then args="$args --delete"; fi
     if [ "$dryrun" = "yes" ]; then args="$args --dry-run"; fi
@@ -241,6 +241,7 @@ fi # Post: Args were passed
 
 # Forward command
 shift
+cd "$(pwd -P)"
 case "$cmd" in
     init)   init "$@"   ;;
     uninit) uninit "$@" ;;
